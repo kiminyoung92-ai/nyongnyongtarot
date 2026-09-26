@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>뇽뇽타로</title>
+<style>
+body{margin:0;background:#120e19;color:#f8f2ff;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif}
+main{max-width:850px;margin:auto;padding:22px 14px 60px}h1{text-align:center;font-size:34px;margin:10px}.sub{text-align:center;color:#bdb2ca}
+.box{background:#1d1727;border:1px solid #3a3048;border-radius:20px;padding:15px;margin-top:14px}
+.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.mode,.minor{border:1px solid #463952;background:#17121f;color:#fff;border-radius:13px;padding:11px;font-weight:700}.mode.on{background:#e4c8ff;color:#24182d}
+textarea{width:100%;box-sizing:border-box;margin-top:12px;min-height:85px;border-radius:14px;border:1px solid #463952;background:#120f18;color:#fff;padding:12px;font-size:16px}
+.go{width:100%;border:0;border-radius:15px;padding:15px;margin-top:10px;font-size:17px;font-weight:900;background:linear-gradient(135deg,#e4c8ff,#ffe1a4);color:#26192f}
+#status{text-align:center;color:#ffe1a4;margin:14px 0}.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
+.card{background:#211a2d;border:1px solid #463952;border-radius:16px;min-height:125px;padding:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.deck{font-size:11px;color:#ffe1a4}.name{font-size:16px;font-weight:900;margin-top:7px}.rev{font-size:12px;color:#ffb8c7;margin-top:4px}
+#result{display:none;line-height:1.75}.score{display:grid;grid-template-columns:1fr 45px;gap:8px;padding:7px 0;border-bottom:1px solid #30273c}.note{color:#bdb2ca;font-size:12px}
+@media(min-width:700px){.modes{grid-template-columns:repeat(6,1fr)}.cards{grid-template-columns:repeat(5,1fr)}}
+</style></head><body><main>
+<h1>🔮 뇽뇽타로</h1><div class="sub">오프라인 단일 HTML · 매 질문 새 셔플 · 4 + 3 + 3 = 10장</div>
+<section class="box">
+<div class="modes">
+<button class="mode on" data-m="속마음">속마음</button><button class="mode" data-m="연애운">연애운</button>
+<button class="mode" data-m="오늘운세">오늘운세</button><button class="mode" data-m="양자택일">양자택일</button>
+<button class="mode" data-m="미래사건">미래사건</button><button class="mode" data-m="자유질문">자유질문</button>
+</div>
+<textarea id="q" placeholder="이 사람은 나를 어떻게 생각해?"></textarea>
+<label style="display:block;margin-top:9px;color:#bdb2ca"><input id="reverse" type="checkbox" checked> 역방향 포함</label>
+<button class="go" id="go">카드 10장 새로 셔플</button>
+<div id="status">질문 없이 눌러도 셔플돼.</div>
+</section>
+<div class="cards" id="cards"></div>
+<section class="box" id="result">
+<h2 id="verdict"></h2><p id="summary"></p><div id="scores"></div>
+<h3>뽑힌 카드</h3><p id="list"></p>
+<h3>핵심 조합</h3><p id="combo"></p>
+<h3>주의점</h3><p id="caution"></p>
+<h3>최종 판정</h3><p><b id="final"></b></p>
+<p class="note">타로는 상징적·오락적 리딩이야. 실제 행동과 확인 가능한 사실이 있다면 그것을 카드보다 우선해.</p>
+</section>
+</main><script>
+(function(){
+"use strict";
+var UW=["The Fool","The Magician","The High Priestess","The Empress","The Emperor","The Hierophant","The Lovers","The Chariot","Strength","The Hermit","Wheel of Fortune","Justice","The Hanged Man","Death","Temperance","The Devil","The Tower","The Star","The Moon","The Sun","Judgement","The World","Ace of Cups","Two of Cups","Three of Cups","Four of Cups","Five of Cups","Six of Cups","Seven of Cups","Eight of Cups","Nine of Cups","Ten of Cups","Page of Cups","Knight of Cups","Queen of Cups","King of Cups","Ace of Wands","Two of Wands","Three of Wands","Four of Wands","Five of Wands","Six of Wands","Seven of Wands","Eight of Wands","Nine of Wands","Ten of Wands","Page of Wands","Knight of Wands","Queen of Wands","King of Wands","Ace of Pentacles","Two of Pentacles","Three of Pentacles","Four of Pentacles","Five of Pentacles","Six of Pentacles","Seven of Pentacles","Eight of Pentacles","Nine of Pentacles","Ten of Pentacles","Page of Pentacles","Knight of Pentacles","Queen of Pentacles","King of Pentacles","Ace of Swords","Two of Swords","Three of Swords","Four of Swords","Five of Swords","Six of Swords","Seven of Swords","Eight of Swords","Nine of Swords","Ten of Swords","Page of Swords","Knight of Swords","Queen of Swords","King of Swords"];
+var BE=["Destinee","Etoile Homme","Etoile Femme","Nativite","Reussite","Elevation","Honneurs","Pensee-Amitie","Campagne-Sante","Presents","Trahison","Depart","Inconstance","Decouverte","Eau","Penates","Maladie","Changement","Argent","Intelligence","Vol-Perte","Entreprises","Trafic","Nouvelle","Plaisirs","Paix","Union","Famille","Amour","Table","Passions","Mechancete","Proces","Despotisme","Ennemis","Pourparlers","Feu","Accident","Appui","Beaute","Heritage","Sagesse","Renommee","Hasard","Bonheur","Infortune","Sterilite","Fatalite","Grace","Ruine","Retard","Cloitre"];
+var LE=["Rider","Clover","Ship","House","Tree","Clouds","Snake","Coffin","Bouquet","Scythe","Whip","Birds","Child","Fox","Bear","Stars","Stork","Dog","Tower","Garden","Mountain","Crossroads","Mice","Heart","Ring","Book","Letter","Man","Woman","Lily","Sun","Moon","Key","Fish","Anchor","Cross"];
+var POS=["The Sun","The Star","The World","The Lovers","Two of Cups","Ten of Cups","Four of Wands","Ace of Cups","Nine of Cups","Six of Wands","Reussite","Union","Amour","Appui","Beaute","Bonheur","Bouquet","Heart","Ring","Sun","Key","Clover","Anchor"];
+var NEG=["Five of Cups","Five of Pentacles","Seven of Swords","Eight of Swords","Nine of Swords","Ten of Swords","The Tower","Three of Swords","Inconstance","Trahison","Infortune","Ruine","Retard","Clouds","Snake","Coffin","Scythe","Whip","Mountain","Mice","Cross"];
+var ACT=["The Magician","The Chariot","Eight of Wands","Knight of Wands","Knight of Cups","Ace of Wands","Judgement","Rider","Letter","Nouvelle","Entreprises"];
+var ATT=["The Empress","Queen of Wands","King of Wands","The Devil","The Lovers","Beaute","Passions","Bouquet","Heart"];
+var COM=["The Hierophant","Four of Wands","Ten of Pentacles","King of Pentacles","Union","Famille","Ring","Anchor","House"];
+var mode="속마음", $=function(x){return document.getElementById(x)};
+var ph={"속마음":"이 사람은 나를 어떻게 생각해?","연애운":"앞으로 한 달 연애운은?","오늘운세":"오늘의 핵심 흐름은?","양자택일":"A와 B 중 어느 쪽이 나아?","미래사건":"앞으로 한 달 안에 가장 큰 변화는?","자유질문":"궁금한 질문을 적어줘."};
+function has(a,x){return a.indexOf(x)>-1}
+function rand(max){if(window.crypto&&crypto.getRandomValues){var a=new Uint32Array(1),lim=Math.floor(4294967296/max)*max;do{crypto.getRandomValues(a)}while(a[0]>=lim);return a[0]%max}return Math.floor(Math.random()*max)}
+function draw(deck,n,label){var p=deck.slice(),o=[];for(var i=0;i<n;i++){var k=rand(p.length);o.push({name:p.splice(k,1)[0],deck:label,rev:$("reverse").checked&&rand(2)===1})}return o}
+function cnt(arr,c){var n=0;for(var i=0;i<c.length;i++)if(has(arr,c[i].name))n++;return n}
+function clamp(n){return Math.max(1,Math.min(10,n))}
+function shuffle(){
+ $("status").textContent="새로 셔플 중…";
+ var c=draw(UW,4,"Universal Waite").concat(draw(BE,3,"Belline"),draw(LE,3,"Lenormand"));
+ $("cards").innerHTML="";
+ for(var i=0;i<c.length;i++){var d=document.createElement("div");d.className="card";d.innerHTML='<div class="deck">'+c[i].deck+'</div><div class="name">'+c[i].name+'</div>'+(c[i].rev?'<div class="rev">역방향</div>':'');$("cards").appendChild(d)}
+ var pos=cnt(POS,c),neg=cnt(NEG,c),act=cnt(ACT,c),att=cnt(ATT,c),com=cnt(COM,c),bal=pos-neg;
+ var v=bal>=2?"YES 쪽":bal<=-2?"NO 쪽":"판단유보";
+ var s1=clamp(Math.round(5+att*.8+bal*.2)),s2=clamp(Math.round(5+pos*.4-neg*.25)),s3=clamp(Math.round(4+act*.55+com*.65+bal*.2)),s4=clamp(Math.round(4+act*.8+bal*.15));
+ $("verdict").textContent=mode+" · "+v;
+ var text= mode==="속마음"?"매력, 호감, 연애 의지, 실제 행동을 분리해서 읽었어. "
+ :mode==="연애운"?"새로운 접점과 실제 관계 발전성을 중심으로 읽었어. "
+ :mode==="오늘운세"?"오늘의 흐름은 특정 사건을 확정하기보다 강하게 반복되는 테마를 중심으로 읽었어. "
+ :mode==="양자택일"?"현재 입력만으로는 A/B를 카드에 균등 배정하지 못하므로 전체 흐름의 우세만 보여줘. "
+ :mode==="미래사건"?"가능성을 높음/중간/낮음으로 과장하지 않고 전체 카드 방향을 중심으로 읽었어. "
+ :"질문에 대한 전체 카드 방향을 중심으로 읽었어. ";
+ $("summary").textContent=text+(bal>0?"긍정 카드가 우세해.":bal<0?"경계·지연 카드의 비중이 더 커.":"긍정과 경계 카드가 팽팽해.");
+ $("scores").innerHTML='<div class="score"><span>매력/끌림</span><b>'+s1+'/10</b></div><div class="score"><span>감정적 호감</span><b>'+s2+'/10</b></div><div class="score"><span>관계 발전성</span><b>'+s3+'/10</b></div><div class="score"><span>행동 가능성</span><b>'+s4+'/10</b></div>';
+ $("list").textContent=c.map(function(x){return x.deck+" · "+x.name+(x.rev?" (역)":"")}).join(" / ");
+ $("combo").textContent=c.slice(0,3).map(function(x){return x.name}).join(" + ")+" 조합이 이번 리딩의 중심이야. "+(com>=2?"관계를 안정시키거나 공식화하는 상징이 강해.":act>=2?"정체보다 움직임을 만드는 상징이 강해.":"빠른 결론보다 관찰이 필요한 배열이야.");
+ $("caution").textContent="카드 하나만으로 결론을 만들지 않았어. 현실에서 반복되는 거절, 연락 단절, 약속 회피처럼 확인 가능한 행동이 있다면 이 결과보다 그 행동을 우선해야 해.";
+ $("final").textContent=v+" — "+(bal>=2?"전체적으로 긍정 방향이 우세하지만 행동으로 확인될 때까지 사실로 단정하지 않아.":bal<=-2?"현재 배열은 밀어붙이는 것보다 거리와 변수를 인정하는 쪽이 강해.":"카드가 한쪽으로 충분히 모이지 않아 억지로 YES/NO를 만들지 않겠어.");
+ $("result").style.display="block"; $("status").textContent="완료. 버튼을 다시 누르면 완전히 새 10장이 나와.";
+ $("result").scrollIntoView({behavior:"smooth",block:"start"});
+}
+var ms=document.querySelectorAll(".mode");for(var i=0;i<ms.length;i++)ms[i].onclick=function(){for(var j=0;j<ms.length;j++)ms[j].classList.remove("on");this.classList.add("on");mode=this.getAttribute("data-m");$("q").placeholder=ph[mode]};
+$("go").onclick=shuffle;
+})();
+</script></body></html>
