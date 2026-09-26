@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>뇽뇽타로</title>
+<style>
+body{margin:0;background:#120e19;color:#f8f2ff;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif}
+main{max-width:850px;margin:auto;padding:22px 14px 60px}h1{text-align:center;font-size:34px;margin:10px}.sub{text-align:center;color:#bdb2ca}
+.box{background:#1d1727;border:1px solid #3a3048;border-radius:20px;padding:15px;margin-top:14px}
+.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.mode,.minor{border:1px solid #463952;background:#17121f;color:#fff;border-radius:13px;padding:11px;font-weight:700}.mode.on{background:#e4c8ff;color:#24182d}
+textarea{width:100%;box-sizing:border-box;margin-top:12px;min-height:85px;border-radius:14px;border:1px solid #463952;background:#120f18;color:#fff;padding:12px;font-size:16px}
+.go{width:100%;border:0;border-radius:15px;padding:15px;margin-top:10px;font-size:17px;font-weight:900;background:linear-gradient(135deg,#e4c8ff,#ffe1a4);color:#26192f}
+#status{text-align:center;color:#ffe1a4;margin:14px 0}.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
+.card{background:#211a2d;border:1px solid #463952;border-radius:16px;min-height:125px;padding:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.deck{font-size:11px;color:#ffe1a4}.name{font-size:16px;font-weight:900;margin-top:7px}.rev{font-size:12px;color:#ffb8c7;margin-top:4px}
+#result{display:none;line-height:1.75}.score{display:grid;grid-template-columns:1fr 45px;gap:8px;padding:7px 0;border-bottom:1px solid #30273c}.note{color:#bdb2ca;font-size:12px}
+@media(min-width:700px){.modes{grid-template-columns:repeat(6,1fr)}.cards{grid-template-columns:repeat(5,1fr)}}
+</style></head><body><main>
+<h1>🔮 뇽뇽타로</h1><div class="sub">뻔한 위로 없이, 카드 그대로 · 매 질문 새 셔플</div>
+<section class="box">
+<div class="modes">
+<button class="mode on" data-m="속마음">속마음</button><button class="mode" data-m="연애운">연애운</button>
+<button class="mode" data-m="오늘운세">오늘운세</button><button class="mode" data-m="양자택일">양자택일</button>
+<button class="mode" data-m="미래사건">미래사건</button><button class="mode" data-m="자유질문">자유질문</button>
+</div>
+<textarea id="q" placeholder="이 사람은 나를 어떻게 생각해?"></textarea>
+<label style="display:block;margin-top:9px;color:#bdb2ca"><input id="reverse" type="checkbox" checked> 역방향 포함</label>
+<button class="go" id="go">10장 새로 셔플해서 팩폭 리딩</button>
+<div id="status">질문을 적고 눌러. 같은 질문도 매번 완전히 새 셔플.</div>
+</section>
+<div class="cards" id="cards"></div>
+<section class="box" id="result">
+<h2 id="verdict"></h2><p id="summary"></p><div id="scores"></div>
+<h3>상세 리딩</h3><div id="detail"></div>
+<h3>뽑힌 카드</h3><p id="list"></p>
+<h3>핵심 조합</h3><p id="combo"></p>
+<h3>3덱 교차검증</h3><p id="validation"></p><h3>판정 신뢰도</h3><p id="confidence"></p><h3>팩폭</h3><p id="caution"></p>
+<h3>현실에서 확인할 것</h3><p id="watch"></p>
+<h3>최종 판정</h3><p><b id="final"></b></p>
+<div class="row" style="margin-top:14px"><button class="secondary" id="makeImage">결과 이미지 만들기</button></div>
+<div id="imageArea" style="display:none;margin-top:14px;text-align:center"><canvas id="shareCanvas" width="1080" height="1920" style="width:100%;max-width:360px;border-radius:18px;border:1px solid #463952"></canvas><div class="row"><button class="secondary" id="saveImage">PNG 저장</button><button class="secondary" id="shareImage">공유하기</button></div></div>
+<p class="note">타로는 상징적·오락적 리딩이야. 실제 행동과 확인 가능한 사실이 있다면 그것을 카드보다 우선해.</p>
+</section>
+</main><script>
+(function(){
+"use strict";
+var UW=["The Fool","The Magician","The High Priestess","The Empress","The Emperor","The Hierophant","The Lovers","The Chariot","Strength","The Hermit","Wheel of Fortune","Justice","The Hanged Man","Death","Temperance","The Devil","The Tower","The Star","The Moon","The Sun","Judgement","The World","Ace of Cups","Two of Cups","Three of Cups","Four of Cups","Five of Cups","Six of Cups","Seven of Cups","Eight of Cups","Nine of Cups","Ten of Cups","Page of Cups","Knight of Cups","Queen of Cups","King of Cups","Ace of Wands","Two of Wands","Three of Wands","Four of Wands","Five of Wands","Six of Wands","Seven of Wands","Eight of Wands","Nine of Wands","Ten of Wands","Page of Wands","Knight of Wands","Queen of Wands","King of Wands","Ace of Pentacles","Two of Pentacles","Three of Pentacles","Four of Pentacles","Five of Pentacles","Six of Pentacles","Seven of Pentacles","Eight of Pentacles","Nine of Pentacles","Ten of Pentacles","Page of Pentacles","Knight of Pentacles","Queen of Pentacles","King of Pentacles","Ace of Swords","Two of Swords","Three of Swords","Four of Swords","Five of Swords","Six of Swords","Seven of Swords","Eight of Swords","Nine of Swords","Ten of Swords","Page of Swords","Knight of Swords","Queen of Swords","King of Swords"];
+var BE=["Destinee","Etoile Homme","Etoile Femme","Nativite","Reussite","Elevation","Honneurs","Pensee-Amitie","Campagne-Sante","Presents","Trahison","Depart","Inconstance","Decouverte","Eau","Penates","Maladie","Changement","Argent","Intelligence","Vol-Perte","Entreprises","Trafic","Nouvelle","Plaisirs","Paix","Union","Famille","Amour","Table","Passions","Mechancete","Proces","Despotisme","Ennemis","Pourparlers","Feu","Accident","Appui","Beaute","Heritage","Sagesse","Renommee","Hasard","Bonheur","Infortune","Sterilite","Fatalite","Grace","Ruine","Retard","Cloitre"];
+var LE=["Rider","Clover","Ship","House","Tree","Clouds","Snake","Coffin","Bouquet","Scythe","Whip","Birds","Child","Fox","Bear","Stars","Stork","Dog","Tower","Garden","Mountain","Crossroads","Mice","Heart","Ring","Book","Letter","Man","Woman","Lily","Sun","Moon","Key","Fish","Anchor","Cross"];
+var POS=["The Sun","The Star","The World","The Lovers","Two of Cups","Ten of Cups","Four of Wands","Ace of Cups","Nine of Cups","Six of Wands","Reussite","Union","Amour","Appui","Beaute","Bonheur","Bouquet","Heart","Ring","Sun","Key","Clover","Anchor"];
+var NEG=["Five of Cups","Five of Pentacles","Seven of Swords","Eight of Swords","Nine of Swords","Ten of Swords","The Tower","Three of Swords","Inconstance","Trahison","Infortune","Ruine","Retard","Clouds","Snake","Coffin","Scythe","Whip","Mountain","Mice","Cross"];
+var ACT=["The Magician","The Chariot","Eight of Wands","Knight of Wands","Knight of Cups","Ace of Wands","Judgement","Rider","Letter","Nouvelle","Entreprises"];
+var ATT=["The Empress","Queen of Wands","King of Wands","The Devil","The Lovers","Beaute","Passions","Bouquet","Heart"];
+var COM=["The Hierophant","Four of Wands","Ten of Pentacles","King of Pentacles","Union","Famille","Ring","Anchor","House"];
+var mode="속마음", $=function(x){return document.getElementById(x)};
+var ph={"속마음":"이 사람은 나를 어떻게 생각해?","연애운":"앞으로 한 달 연애운은?","오늘운세":"오늘의 핵심 흐름은?","양자택일":"A와 B 중 어느 쪽이 나아?","미래사건":"앞으로 한 달 안에 가장 큰 변화는?","자유질문":"궁금한 질문을 적어줘."};
+function has(a,x){return a.indexOf(x)>-1}
+function rand(max){if(window.crypto&&crypto.getRandomValues){var a=new Uint32Array(1),lim=Math.floor(4294967296/max)*max;do{crypto.getRandomValues(a)}while(a[0]>=lim);return a[0]%max}return Math.floor(Math.random()*max)}
+function draw(deck,n,label){var p=deck.slice(),o=[];for(var i=0;i<n;i++){var k=rand(p.length);o.push({name:p.splice(k,1)[0],deck:label,rev:$("reverse").checked&&rand(2)===1})}return o}
+function cnt(arr,c){var n=0;for(var i=0;i<c.length;i++)if(has(arr,c[i].name))n++;return n}
+function clamp(n){return Math.max(1,Math.min(10,n))}
+var MEAN={
+"The Lovers":"끌림과 선택이 동시에 걸린 카드","Two of Cups":"상호 호감과 감정 교환","The Devil":"강한 욕망·집착·성적 끌림","King of Cups":"감정은 있지만 통제하고 표현을 아낌","Queen of Cups":"감정 몰입과 공감이 큼","Ace of Cups":"새 감정이 실제로 시작됨","Four of Cups":"조건과 별개로 마음이 미적지근함","Seven of Pentacles":"더 만나보고 판단하려는 관찰 단계","Two of Swords":"결정을 미루고 양쪽 가능성을 열어둠","Eight of Wands":"연락·만남의 속도가 실제로 붙음","Knight of Cups":"호감을 표현하고 다가가려는 마음","Knight of Wands":"접근 화력은 세지만 지속성은 따로 봐야 함","The Hierophant":"애매한 썸보다 공식 관계를 선호","Four of Wands":"함께 있는 것이 자연스러워지고 관계가 안정됨","Ten of Pentacles":"장기적·현실적 지속성을 봄","King of Pentacles":"말보다 꾸준함과 책임으로 보여줌","The Moon":"확신 부족·숨은 감정·과해석 위험","Seven of Swords":"전부 솔직하게 보여주지 않거나 회피함","The Hermit":"감정보다 자기 세계와 거리가 우선","The Tower":"기존 판단을 깨는 예상 밖의 전환","Judgement":"애매했던 관계를 다시 평가하고 결론냄","The Sun":"마음이나 결과가 비교적 명확하게 드러남","Justice":"감정보다 실제 궁합과 관계 정의를 따짐","The Chariot":"결정하면 실제 행동으로 밀고 나감","The Empress":"연애 상대로 높은 매력과 가치를 느낌","Queen of Wands":"시선을 끄는 강한 이성적 매력","King of Wands":"끌리면 주도적으로 움직이는 에너지","Page of Swords":"궁금해서 관찰하고 반응을 체크함","Page of Cups":"초기 설렘과 아직 어린 감정","Nine of Swords":"실제보다 머릿속에서 불안이 커질 수 있음","Three of Swords":"실망·상처·삼각 변수 가능성","Ace of Swords":"애매함을 직접적인 말로 확인함","Temperance":"차이는 있지만 천천히 맞출 수 있음",
+"Amour":"감정적 사랑이 붙는 흐름","Union":"관계를 실제로 묶고 정의하려는 힘","Passions":"욕망과 화력이 강함","Inconstance":"온도차와 변덕, 지속성 확인 필요","Retard":"마음과 별개로 진행 속도가 늦음","Pourparlers":"대화를 통해 관계를 확인함","Beaute":"외적 매력과 호감이 강점","Sagesse":"감정보다 신중한 현실 판단","Changement":"현재 상태가 그대로 가지 않고 바뀜","Nouvelle":"연락·소식·새 정보가 흐름을 바꿈","Reussite":"결과가 유리한 쪽으로 모임","Bonheur":"정서적 만족도가 높음",
+"Heart":"명백한 호감과 애정","Ring":"약속·반복·공식 관계","Anchor":"느려도 쉽게 끊기지 않는 지속성","Rider":"상대 쪽에서 실제 접근이 들어옴","Letter":"메시지나 말로 확인되는 소통","Clouds":"지금 단정하면 오판하기 쉬운 혼란","Crossroads":"두 방향 중 하나를 선택해야 함","Mountain":"감정만으로 넘기 힘든 현실 장벽","Fox":"상대가 계산하고 상황을 재는 중","Bouquet":"칭찬·호감·기분 좋은 관심 표현","Dog":"편안한 신뢰와 오래 가는 정","Sun":"명확한 긍정과 공개되는 결과","Key":"답이 확실해지는 전환점","Coffin":"한 흐름이 닫히거나 정리됨","Mice":"불안과 소모가 관계를 조금씩 갉아먹음","Birds":"대화는 많지만 긴장과 신경 씀도 섞임","House":"생활 속 안정과 현실 기반","Garden":"사람이 섞인 공개적·사교적 접점","Book":"아직 모르는 정보가 남아 있음"};
+var SLOTS={
+"속마음":["겉태도","진짜 감정","이성적 끌림","연애 의지","감정 배경","숨기는 것","걸리는 점","실제 행동","단기 변화","관계 결말"],
+"연애운":["현재 상태","들어오는 이성","네 반응","가장 강한 관계","기회","장애물","변화","실제 접점","진전 방식","결말"],
+"오늘운세":["오늘 핵심","일/현실","애정","감정","뜻밖의 변수","좋은 흐름","주의점","실제 사건","대화/소식","하루 결말"],
+"미래사건":["사건 시작","상대/원인","반전","결과","배경","장애물","변화","현실 신호","전환점","결말"],
+"자유질문":["현재 기반","잠재력","실행력","외부 반응","배경","숨은 변수","가장 큰 장애물","현실 행동","전환점","최종 결과"]};
+function slots(){return SLOTS[mode]||SLOTS["자유질문"]}
+function meaning(x){var t=MEAN[x.name]||((POS.indexOf(x.name)>-1)?"긍정적인 가능성을 키우는 카드":(NEG.indexOf(x.name)>-1)?"경계·거리·지연을 만드는 카드":(ACT.indexOf(x.name)>-1)?"생각보다 실제 움직임을 만드는 카드":"상황을 더 지켜봐야 하는 중립 카드");return x.rev?t+". 역방향이라 힘이 막히거나 과해질 수 있음":t}
+
+function detailHTML(c,sl){
+ return c.map(function(x,i){
+   var extra="";
+   if(mode==="속마음"){
+     if(sl[i]==="진짜 감정") extra=" 이 카드는 상대가 겉으로 보이는 태도보다 실제 안쪽 감정을 읽는 자리라 비중을 높게 본다.";
+     if(sl[i]==="이성적 끌림") extra=" 여기서는 인간적 호감이 아니라 이성적·신체적 매력의 강도를 본다.";
+     if(sl[i]==="연애 의지") extra=" 좋아하는지와 별개로 실제 연애를 선택할 준비가 있는지를 보는 자리다.";
+     if(sl[i]==="실제 행동") extra=" 마음보다 현실에서 무엇을 할지가 드러나는 자리다.";
+   } else if(mode==="오늘운세"){
+     if(sl[i]==="일/현실") extra=" 업무·일정·실제 처리 문제에 적용해서 읽는다.";
+     if(sl[i]==="애정") extra=" 연애 카드가 약하면 억지로 연락이나 고백 사건을 만들지 않는다.";
+     if(sl[i]==="실제 사건") extra=" 오늘 실제로 확인 가능한 장면이어야 적중으로 친다.";
+   } else if(mode==="연애운"){
+     if(sl[i]==="들어오는 이성") extra=" 새 사람뿐 아니라 최근 접점이 생긴 사람도 포함한다.";
+     if(sl[i]==="실제 접점") extra=" 좋아요·스토리 조회보다 실제 연락·약속을 더 강하게 본다.";
+     if(sl[i]==="결말") extra=" 설렘보다 실제 관계가 남는지를 보는 자리다.";
+   } else if(mode==="미래사건"){
+     if(sl[i]==="반전") extra=" 예상과 다르게 흐름이 꺾이는 지점이다.";
+     if(sl[i]==="현실 신호") extra=" 사건이 실제로 시작됐다고 볼 수 있는 확인 신호다.";
+   } else {
+     if(sl[i]==="실행력") extra=" 가능성이 아니라 실제로 결과를 만들 힘을 본다.";
+     if(sl[i]==="가장 큰 장애물") extra=" 결과를 막는 핵심 변수로 읽는다.";
+   }
+   return "<p><b>"+(i+1)+". "+sl[i]+" — "+x.name+(x.rev?" (역방향)":"")+"</b><br>"+meaning(x)+extra+"</p>";
+ }).join("");
+}
+function pairText(c){var n=c.map(x=>x.name),r=[];function both(a,b,t){if(n.indexOf(a)>-1&&n.indexOf(b)>-1)r.push(t)}
+both("The Devil","The Lovers","끌림은 확실히 세다. 다만 강하게 끌리는 것과 안정적으로 사귀는 것은 같은 말이 아니다.");both("Two of Cups","Ring","상호 호감이 실제 관계 정의까지 갈 힘이 있다.");both("King of Cups","Four of Pentacles","감정은 있는데 표현과 행동을 일부러 누르는 흐름이다.");both("Page of Swords","The Moon","상대를 많이 의식하고 보지만 확신은 부족하다.");both("Eight of Wands","Rider","연락보다 실제 만남과 접근 속도가 갑자기 붙을 수 있다.");both("Seven of Pentacles","Anchor","느리지만 끊기는 관계보다 시간을 두고 이어지는 쪽이다.");both("The Tower","Judgement","예상 못 한 사건 하나가 관계 판단을 확 뒤집을 수 있다.");both("Four of Cups","The Lovers","처음엔 미적지근해도 나중에 이성적으로 재평가할 수 있다.");both("Seven of Swords","The Moon","말과 속마음이 다르거나 아직 보여주지 않은 정보가 있을 수 있다.");both("The Hierophant","Ring","썸보다 공식적인 관계로 이름 붙이는 힘이 강하다.");both("Knight of Wands","Inconstance","접근은 빠르고 세지만 지속성은 냉정하게 확인해야 한다.");return r.length?r.slice(0,2).join(" "):c[0].name+" + "+c[1].name+" + "+c[9].name+" 흐름은 초반 인상보다 마지막 결말 카드가 더 중요하다고 말한다."}
+
+function crossValidate(cards){
+  // 덱별 역할: Waite=심리, Belline=배경/흐름, Lenormand=현실행동/결말
+  var w=cards.filter(function(c){return c.deck.indexOf("Waite")>=0}),
+      b=cards.filter(function(c){return c.deck.indexOf("Belline")>=0}),
+      l=cards.filter(function(c){return c.deck.indexOf("Lenormand")>=0});
+  var good=["The Sun","The Star","The World","The Lovers","Two of Cups","Ace of Cups","Four of Wands","Ten of Cups","King of Cups","Amour","Union","Reussite","Bonheur","Heart","Ring","Sun","Key","Anchor","Bouquet"];
+  var block=["The Hermit","Four of Swords","Two of Swords","Seven of Pentacles","Eight of Swords","Nine of Swords","The Moon","Retard","Inconstance","Trahison","Clouds","Mountain","Crossroads","Mice","Coffin"];
+  var act=["The Chariot","The Magician","Eight of Wands","Knight of Cups","Knight of Wands","Judgement","Nouvelle","Entreprises","Rider","Letter","Key"];
+  function n(arr,set){return arr.reduce(function(z,c){return z+(set.indexOf(c.name)>=0?1:0)},0)}
+  var wd=n(w,good)-n(w,block), bd=n(b,good)-n(b,block), ld=n(l,good)-n(l,block);
+  var dirs=[wd,bd,ld].map(function(x){return x>0?1:x<0?-1:0});
+  var nonzero=dirs.filter(function(x){return x!==0});
+  var agree=nonzero.length?Math.max(nonzero.filter(function(x){return x===1}).length,nonzero.filter(function(x){return x===-1}).length):0;
+  var confidence = agree>=3 ? "높음" : agree===2 ? "중간" : "낮음";
+  var actionCount=n(cards,act), blockCount=n(cards,block);
+  return {waite:wd,belline:bd,lenormand:ld,confidence:confidence,actionCount:actionCount,blockCount:blockCount};
+}
+function slotAdjust(card,slot){
+  // 같은 카드라도 위치에 따라 의미 강도를 다르게 준다.
+  var name=card.name, delta={attr:0,emo:0,commit:0,action:0};
+  var attraction=["The Devil","The Lovers","The Empress","Queen of Wands","King of Wands","Beaute","Passions","Heart","Bouquet"];
+  var emotion=["King of Cups","Queen of Cups","Ace of Cups","Two of Cups","The Lovers","Amour","Heart","Dog"];
+  var commitment=["The Hierophant","Justice","Four of Wands","Ten of Pentacles","King of Pentacles","Union","Ring","Anchor","House"];
+  var action=["The Chariot","The Magician","Eight of Wands","Knight of Cups","Knight of Wands","Judgement","Rider","Letter","Nouvelle","Key"];
+  var blocks=["The Hermit","Four of Swords","Two of Swords","Seven of Pentacles","Eight of Swords","The Moon","Retard","Clouds","Mountain","Crossroads"];
+  function has(a){return a.indexOf(name)>=0}
+  if(/끌림|매력/.test(slot)&&has(attraction))delta.attr+=2;
+  if(/감정|속마음/.test(slot)&&has(emotion))delta.emo+=2;
+  if(/연애 의지|관계 방향|결말|공식/.test(slot)&&has(commitment))delta.commit+=2;
+  if(/행동|현실|접근|연락/.test(slot)&&has(action))delta.action+=2;
+  if(/행동|관계 방향|결말/.test(slot)&&has(blocks)){delta.action-=2;delta.commit-=1;}
+  if(card.rev){delta.attr*=.7;delta.emo*=.7;delta.commit*=.65;delta.action*=.6;}
+  return delta;
+}
+
+function scoreSide(cards,sl){
+ var pos=cnt(POS,cards),neg=cnt(NEG,cards),act=cnt(ACT,cards),att=cnt(ATT,cards),com=cnt(COM,cards);
+ var a=4+att+Math.round(pos*.2),e=4+Math.round(pos*.45)-Math.round(neg*.3),cm=3+com+Math.round(pos*.2)-Math.round(neg*.25),ac=3+act+Math.round(com*.2)-Math.round(neg*.25);
+ for(var i=0;i<cards.length;i++){var d=slotAdjust(cards[i],sl[i]||"");a+=d.attr;e+=d.emo;cm+=d.commit;ac+=d.action;}
+ return {attr:clamp(Math.round(a)),emo:clamp(Math.round(e)),commit:clamp(Math.round(cm)),action:clamp(Math.round(ac)),pos:pos,neg:neg,raw:(pos+com+act)-(neg*1.15)};
+}
+function renderCards(c,sl){
+ $("cards").innerHTML="";for(var i=0;i<c.length;i++){var d=document.createElement("div");d.className="card";d.innerHTML='<div style="font-size:11px;color:#cbb6db">'+sl[i]+'</div><div class="deck">'+c[i].deck+'</div><div class="name">'+c[i].name+'</div>'+(c[i].rev?'<div class="rev">역방향</div>':'');$("cards").appendChild(d)}
+}
+function shuffle(){
+ $("status").textContent="새로 셔플 중…";
+ if(mode==="양자택일"){
+   var a=draw(UW,2,"A · Universal Waite").concat(draw(BE,1,"A · Belline"),draw(LE,2,"A · Lenormand"));
+   var b=draw(UW,2,"B · Universal Waite").concat(draw(BE,1,"B · Belline"),draw(LE,2,"B · Lenormand"));
+   var c=a.concat(b), sl=["A 감정","A 행동","A 변수","A 관계방향","A 결말","B 감정","B 행동","B 변수","B 관계방향","B 결말"];
+   renderCards(c,sl); var sa=scoreSide(a,sl.slice(0,5)),sb=scoreSide(b,sl.slice(5));
+   var diff=sa.raw-sb.raw, v=Math.abs(diff)<1.5?"판단유보":diff>0?"A 쪽":"B 쪽";
+   $("verdict").textContent="양자택일 · "+v;
+   $("summary").textContent="A와 B를 같은 10장으로 억지 비교하지 않고 5장씩 독립 추첨했어. "+(v==="판단유보"?"두 쪽의 장단점이 달라 한쪽을 확실히 고르기 어렵다.":v+"이 감정·행동·결말을 합쳐 더 일관되게 나온다.");
+   $("scores").innerHTML='<div class="score"><span>A 관계력</span><b>'+clamp(Math.round((sa.emo+sa.commit+sa.action)/3))+'/10</b></div><div class="score"><span>B 관계력</span><b>'+clamp(Math.round((sb.emo+sb.commit+sb.action)/3))+'/10</b></div>';
+   $("list").textContent=c.map(function(x,i){return sl[i]+" — "+x.name+(x.rev?" (역)":"")+": "+meaning(x)}).join(" / ");
+   $("detail").innerHTML=detailHTML(c,sl); $("combo").textContent="A: "+pairText(a)+" B: "+pairText(b);
+   $("validation").textContent="A와 B를 각각 독립된 소배열로 판정했어. 점수 차가 작으면 억지로 승자를 만들지 않는다.";
+   $("confidence").textContent=Math.abs(diff)>=3?"높음 — 두 선택지의 카드 방향 차이가 큼":"중간~낮음 — 두 선택지의 차이가 작거나 장단점이 엇갈림";
+   $("caution").textContent=v==="판단유보"?"팩폭: 지금 카드로 한쪽을 고르는 건 희망회로에 가깝다. 실제 행동과 지속성을 봐.":"팩폭: "+v+"이 더 좋아 보여도, 현실에서 약속·시간 투자·일관성이 없으면 카드보다 그 행동을 우선해.";
+   $("watch").textContent="A와 B 중 실제로 선택해야 한다면 카드 점수만 보지 말고, 각 선택이 현실에서 반복적으로 주는 결과·비용·안정성을 비교해. 한 번의 좋은 사건보다 지속되는 패턴을 우선해.";
+   $("final").textContent=v+" — A와 B를 별개로 뽑은 결과 기준.";
+ }else{
+   var c=draw(UW,4,"Universal Waite").concat(draw(BE,3,"Belline"),draw(LE,3,"Lenormand")),sl=slots();renderCards(c,sl);
+   var sc=scoreSide(c,sl),cv=crossValidate(c);
+   // 행동/결말이 막히면 호감 점수와 별개로 최종 관계판정을 낮춘다.
+   var relation=(sc.emo+sc.commit+sc.action)/3; if(cv.blockCount>=3)relation-=1.3; if(cv.actionCount===0)relation-=.8;
+   var v=relation>=6.7?"YES 쪽":relation<=4.3?"NO 쪽":"판단유보";
+   $("verdict").textContent=mode+" · "+v;
+   var lead;
+   if(mode==="속마음") lead=(sc.attr>=7?"이성적 끌림은 분명해. ":"끌림 자체가 압도적이진 않아. ")+(sc.emo>=7?"감정도 실제로 붙어 있어. ":"감정은 아직 호기심·평가 단계가 섞여 있어. ")+(sc.commit>=7?"연애 대상으로 진지하게 보는 힘도 있다.":"다만 마음에 드는 것과 사귀기로 선택하는 건 아직 별개야.");
+   else if(mode==="연애운") lead=(cv.actionCount>=2?"이번 연애운은 생각보다 실제 접점과 움직임이 있는 편. ":"접점보다 관찰·선별이 더 강한 흐름. ")+(sc.commit>=7?"한 관계는 공식화까지 갈 힘이 있다.":"아직 공식 연애보다 누가 꾸준히 남는지가 중요하다.");
+   else if(mode==="오늘운세") lead="오늘은 흔한 사건을 여러 개 던지지 않고, 세 덱이 반복하는 방향만 본다. "+(cv.actionCount>=2?"실제 움직임·연락·결정이 핵심.":cv.blockCount>=3?"무리하게 밀기보다 꼬이는 지점을 줄이는 게 핵심.":"작은 선택의 결과가 핵심.");
+   else if(mode==="미래사건") lead=sc.commit>=7?"가장 강한 사건은 관계를 명확히 하는 변화다.":cv.actionCount>=2?"가장 강한 사건은 예상보다 빨리 움직이는 접점이다.":cv.blockCount>=3?"가장 강한 사건은 관계 하나를 재평가하거나 정리하는 일이다.":"가장 강한 사건은 누군가에 대한 평가가 뒤집히는 일이다.";
+   else lead="카드 한 장씩 좋은 말로 풀지 않고, 자리 의미와 세 덱이 같은 방향을 반복하는지 중심으로 읽었어.";
+   if(mode==="속마음"){
+     lead += " 겉태도("+c[0].name+")와 진짜 감정("+c[1].name+")을 분리해서 보면, "+(sc.emo>=7?"겉보다 속이 더 진지하거나 감정이 이미 붙은 쪽으로 읽힌다.":"아직 감정 자체를 크게 확정하기보다 상대가 계속 평가하는 단계가 섞여 있다.")+" 끌림 자리의 "+c[2].name+"과 연애 의지 자리의 "+c[3].name+"이 같은 방향인지가 핵심이다.";
+   }else if(mode==="연애운"){
+     lead += " 들어오는 이성 자리 "+c[1].name+", 실제 접점 자리 "+c[7].name+", 결말 "+c[9].name+"을 연결해서 보면 "+(cv.actionCount>=2?"말뿐인 관심보다 실제 연락·약속으로 이어질 여지가 있다.":"관심 신호가 있어도 실제 만남으로 굳는지는 더 확인해야 한다.")+" 특히 결말 카드가 초반 설렘보다 더 중요하다.";
+   }else if(mode==="오늘운세"){
+     lead += " 일/현실은 "+c[1].name+", 대인·애정은 "+c[2].name+", 실제 사건은 "+c[7].name+", 하루 결말은 "+c[9].name+"으로 읽는다. "+(cnt(["Argent","Fish","Ace of Pentacles","Nine of Pentacles"],c)>=1?"금전 관련 카드도 있어 소비·수입·정산 같은 현실 돈 흐름을 체크할 만하다.":"금전 카드는 약해서 억지로 돈 사건을 만들지는 않는다.");
+   }else if(mode==="미래사건"){
+     lead += " 시작 "+c[0].name+" → 반전 "+c[2].name+" → 현실 신호 "+c[7].name+" → 결말 "+c[9].name+" 순서로 본다. 단순히 비슷한 일이 하나 생겼다고 적중이 아니라, 이 네 단계 중 최소 세 단계가 현실에서 이어져야 이번 리딩과 맞는 것으로 본다.";
+   }else{
+     lead += " 현재 기반 "+c[0].name+", 잠재력 "+c[1].name+", 실행력 "+c[2].name+", 장애물 "+c[6].name+", 최종 결과 "+c[9].name+"을 중심으로 본다. 좋은 카드가 많아도 실행력이 약하거나 장애물이 강하면 성공 판정을 낮춘다.";
+   }
+   $("summary").textContent=lead;
+   var scoreItems;
+   if(mode==="속마음"){
+     scoreItems=[["이성적 끌림",sc.attr],["감정적 호감",sc.emo],["연애 진지함",sc.commit],["행동 의지",sc.action]];
+   }else if(mode==="연애운"){
+     scoreItems=[["인연 유입",clamp(4+cv.actionCount+Math.round(sc.pos*.3)-Math.round(sc.neg*.2))],["상호성",clamp(Math.round((sc.emo+sc.attr)/2))],["관계 진전",clamp(Math.round((sc.action+sc.commit)/2))],["안정성",clamp(5+cnt(COM,c)-cv.blockCount)]];
+   }else if(mode==="오늘운세"){
+     scoreItems=[["전체운",clamp(5+sc.pos-sc.neg)],["일·현실",clamp(5+cnt(ACT,c)+cnt(["Reussite","Entreprises","Key","Fox","Bear"],c)-cnt(["Mountain","Mice","Retard"],c))],["대인관계",clamp(5+cnt(["Dog","Bouquet","Birds","Garden","Sun"],c)-cnt(["Whip","Snake","Clouds"],c))],["금전운",clamp(5+cnt(["Argent","Fish","Ace of Pentacles","Nine of Pentacles"],c)-cnt(["Vol-Perte","Mice","Five of Pentacles"],c))]];
+   }else if(mode==="미래사건"){
+     scoreItems=[["사건 발생력",clamp(4+cv.actionCount+cnt(["The Tower","Judgement","Changement","Nouvelle","Rider","Key"],c)-cv.blockCount)],["변화폭",clamp(4+2*cnt(["The Tower","Death","Judgement","Changement","Scythe","Stork"],c))],["유리함",clamp(5+sc.pos-sc.neg)],["지속성",clamp(5+cnt(["Anchor","Ring","Tree","House","Ten of Pentacles"],c)-cnt(["Inconstance","Coffin","Mice"],c))]];
+   }else{
+     scoreItems=[["긍정도",clamp(5+sc.pos-sc.neg)],["실현력",clamp(4+cv.actionCount+cnt(["Key","Reussite","The Chariot"],c)-cv.blockCount)],["장애물 강도",clamp(3+sc.neg+cv.blockCount)],["지속성",clamp(5+cnt(["Anchor","Tree","Ring","Ten of Pentacles"],c)-cnt(["Inconstance","Mice","Coffin"],c))]];
+   }
+   $("scores").innerHTML=scoreItems.map(function(z){return '<div class="score"><span>'+z[0]+'</span><b>'+z[1]+'/10</b></div>';}).join("");
+   $("detail").innerHTML=detailHTML(c,sl);
+   $("list").textContent=c.map(function(x,i){return sl[i]+" — "+x.name+(x.rev?" (역)":"")+": "+meaning(x)}).join(" / ");
+   $("combo").textContent=pairText(c);
+   var dirs=[cv.waite,cv.belline,cv.lenormand];
+   function word(x){return x>0?"긍정":x<0?"경계":"중립"}
+   $("validation").textContent="Waite(심리): "+word(cv.waite)+" / Belline(배경·흐름): "+word(cv.belline)+" / Lenormand(현실행동·결말): "+word(cv.lenormand)+". "+(cv.actionCount?"행동 카드 "+cv.actionCount+"장":"행동 카드가 약함")+", 장애·지연 카드 "+cv.blockCount+"장.";
+   $("confidence").textContent=cv.confidence+" — "+(cv.confidence==="높음"?"세 덱이 거의 같은 방향을 반복해서 판정이 비교적 선명함.":cv.confidence==="중간"?"두 덱은 같은 방향이지만 한 덱이 중립/반대라 단정은 금물.":"덱끼리 방향이 충돌해 결과보다 현실 행동 확인이 더 중요함.");
+   var punch;if(mode==="속마음"&&sc.attr>=7&&sc.commit<=5)punch="끌리는 건 맞아도 책임질 생각까지 있다는 뜻은 아냐. ‘매력 있음’을 ‘사귀고 싶음’으로 번역하면 틀릴 수 있어.";else if(mode==="속마음"&&sc.emo>=6&&sc.action<=5)punch="마음은 있어도 행동이 못 따라간다. 네가 계속 먼저 굴리면 상대 진심이 아니라 네 노력으로 유지되는 관계가 될 수 있어.";else if(cv.blockCount>=4)punch="좋게 해석해서 살리기엔 장애 카드가 많아. 희망회로보다 실제 행동을 보는 게 맞다.";else if(sc.commit>=7&&sc.action>=7)punch="이번엔 ‘호감은 있는데…’로 빠질 배열이 아니다. 관계 의지와 행동이 같이 붙었다.";else punch="애매하면 애매하다고 보는 게 답이다. 카드가 빈칸을 희망으로 채워주진 않아.";
+   $("caution").textContent=punch;
+   $("watch").textContent=mode==="속마음"?"다음 약속을 상대가 먼저 구체적으로 잡는지, 성적인 상황이 없어도 시간을 쓰는지, 네가 한 말을 기억해 다시 꺼내는지 봐. 세 가지 중 두 개도 없으면 카드가 좋아도 실제 연애 의지는 낮춰 봐.":mode==="연애운"?"스토리 조회·좋아요는 제외. 선제 연락이 반복되고 1:1 약속이 실제로 잡히며 다음 만남까지 이어지는 사람만 유효한 인연으로 쳐.":mode==="오늘운세"?"오늘 밤 실제로 확인 가능한 장면만 적중으로 쳐. 막연한 느낌이나 사후 해석은 제외.":"카드가 말한 행동이 현실에서 실제로 발생하는지만 확인해. 의미를 넓혀 맞히지 마.";
+   $("final").textContent=v+" · 판정 신뢰도 "+cv.confidence+" — "+(v==="YES 쪽"?(sc.commit>=7?"호감뿐 아니라 관계로 가져갈 힘도 있다.":"긍정적이지만 선택 완료라고 보긴 이르다."):v==="NO 쪽"?"현재는 감정보다 장애·거리·행동 부족이 더 크다.":"카드가 한쪽으로 충분히 모이지 않았다. 억지로 YES/NO를 만들지 않는다.");
+ }
+ $("result").style.display="block";$("status").textContent="완료. 다시 누르면 완전히 새 카드.";$("result").scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+var ms=document.querySelectorAll(".mode");for(var i=0;i<ms.length;i++)ms[i].onclick=function(){for(var j=0;j<ms.length;j++)ms[j].classList.remove("on");this.classList.add("on");mode=this.getAttribute("data-m");$("q").placeholder=ph[mode]};
+$("go").onclick=shuffle;
+})();
+
+function wrapText(ctx,text,x,y,maxWidth,lineHeight,maxLines){
+  var words=String(text||"").split(/\s+/), line="", lines=[];
+  for(var i=0;i<words.length;i++){
+    var test=line+(line?" ":"")+words[i];
+    if(ctx.measureText(test).width>maxWidth && line){lines.push(line);line=words[i];}
+    else line=test;
+  }
+  if(line) lines.push(line);
+  lines=lines.slice(0,maxLines||99);
+  for(var j=0;j<lines.length;j++) ctx.fillText(lines[j],x,y+j*lineHeight);
+  return y+lines.length*lineHeight;
+}
+function makeResultImage(){
+  var canvas=document.getElementById("shareCanvas"), ctx=canvas.getContext("2d");
+  var g=ctx.createLinearGradient(0,0,1080,1920); g.addColorStop(0,"#251832"); g.addColorStop(.55,"#120d19"); g.addColorStop(1,"#0c0911");
+  ctx.fillStyle=g;ctx.fillRect(0,0,1080,1920);
+  ctx.textAlign="center";ctx.fillStyle="#f8f3ff";ctx.font="900 74px -apple-system, sans-serif";ctx.fillText("🔮 뇽뇽타로",540,130);
+  ctx.fillStyle="#cdbfda";ctx.font="34px -apple-system, sans-serif";
+  var q=(document.getElementById("q").value||mode||"타로 리딩").slice(0,80);
+  wrapText(ctx,q,540,220,880,48,3);
+  ctx.fillStyle="#ffe1a6";ctx.font="900 58px -apple-system, sans-serif";
+  ctx.fillText(document.getElementById("verdict").textContent||"리딩 결과",540,390);
+  ctx.textAlign="left";ctx.fillStyle="#f8f3ff";ctx.font="38px -apple-system, sans-serif";
+  var y=490;
+  y=wrapText(ctx,document.getElementById("summary").textContent,100,y,880,55,5)+45;
+  ctx.fillStyle="#ffb8c7";ctx.font="900 40px -apple-system, sans-serif";ctx.fillText("팩폭",100,y);y+=60;
+  ctx.fillStyle="#f8f3ff";ctx.font="36px -apple-system, sans-serif";
+  var detailNode=document.getElementById("detail");
+  var detailText=detailNode?detailNode.innerText:"";
+  var caution=(detailText?detailText.slice(0,280)+" ":"")+(document.getElementById("caution").textContent||"");
+  y=wrapText(ctx,caution,100,y,880,52,5)+55;
+  ctx.fillStyle="#ffe1a6";ctx.font="900 40px -apple-system, sans-serif";ctx.fillText("핵심 카드",100,y);y+=62;
+  ctx.fillStyle="#f8f3ff";ctx.font="32px -apple-system, sans-serif";
+  var names=[].slice.call(document.querySelectorAll(".card .name")).slice(0,3).map(function(n){return n.textContent}).join("  ·  ");
+  wrapText(ctx,names,100,y,880,48,3);
+  ctx.textAlign="center";ctx.fillStyle="#8f829c";ctx.font="28px -apple-system, sans-serif";ctx.fillText("뻔한 위로 없이, 카드 그대로.",540,1790);
+  ctx.fillStyle="#6f6579";ctx.font="24px -apple-system, sans-serif";var cf=document.getElementById("confidence");ctx.fillText(cf?cf.textContent:"타로는 오락적·상징적 리딩입니다.",540,1840);
+  document.getElementById("imageArea").style.display="block";
+  document.getElementById("imageArea").scrollIntoView({behavior:"smooth",block:"center"});
+}
+function canvasBlob(cb){document.getElementById("shareCanvas").toBlob(cb,"image/png",1);}
+var mib=document.getElementById("makeImage"); if(mib)mib.onclick=makeResultImage;
+var sib=document.getElementById("saveImage"); if(sib)sib.onclick=function(){canvasBlob(function(b){var u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download="nyongnyong-tarot-result.png";document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},1000);});};
+var shb=document.getElementById("shareImage"); if(shb)shb.onclick=function(){canvasBlob(async function(b){var f=new File([b],"nyongnyong-tarot-result.png",{type:"image/png"});try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:"뇽뇽타로 결과"});}else{alert("이 브라우저에서는 이미지 직접 공유가 안 돼. PNG 저장을 눌러줘.");}}catch(e){}});};
+
+</script></body></html>
